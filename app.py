@@ -81,7 +81,7 @@ if df.empty or dati_ecdc['confermati'] != df.iloc[-1]['Casi Confermati']:
 st.title("Monitoraggio Andes Hantavirus")
 st.markdown(f"**Sorgente ECDC:** [Link Ufficiale]({URL_ECDC})")
 
-# Barra del Rischio (Forzata leggibile)
+# Barra del Rischio
 colori = {"Molto Basso": "#28a745", "Basso": "#007bff", "Moderato": "#ffc107", "Alto": "#dc3545", "Molto Alto": "#8b0000"}
 colore_rischio = colori.get(livello_rischio, "#6c757d")
 st.markdown(f"""
@@ -110,7 +110,7 @@ if not df.empty:
         st.plotly_chart(fig, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# --- METRICHE IN RIQUADRI (FIX DARK MODE) ---
+# --- METRICHE IN RIQUADRI ---
 st.markdown("<br>", unsafe_allow_html=True)
 st.subheader("Riepilogo Dati Attuali")
 m1, m2, m3, m4 = st.columns(4)
@@ -137,24 +137,22 @@ m2.markdown(box_metrica("DECESSI", "MONDO", dati_ecdc['morti'], "rgb(0, 0, 0)"),
 m3.markdown(box_metrica("CASI PROBABILI", "MONDO", dati_ecdc['probabili'], "rgb(253, 126, 20)"), unsafe_allow_html=True)
 m4.markdown(box_metrica("MONITORAGGIO", "ITALIA", dati_ecdc['italia_quarantena'], "rgb(0, 123, 255)"), unsafe_allow_html=True)
 
-# --- LEGENDA (FIX DARK MODE) ---
+# --- LEGENDA (RIMOSSO CASO SOSPETTO) ---
 st.markdown("<br><hr>", unsafe_allow_html=True)
 st.subheader("Legenda Definizioni")
-col_l1, col_l2, col_l3 = st.columns(3)
+col_l1, col_l2 = st.columns(2)
 
 def box_legenda(titolo, testo, colore_sinistra):
     return f"""
-    <div style="background-color: rgb(235, 235, 235) !important; padding: 15px; border-radius: 10px; border-left: 6px solid {colore_sinistra}; min-height: 120px; margin-bottom: 10px;">
+    <div style="background-color: rgb(235, 235, 235) !important; padding: 15px; border-radius: 10px; border-left: 6px solid {colore_sinistra}; min-height: 100px; margin-bottom: 10px;">
         <strong style="color: rgb(0, 0, 0) !important; font-size: 1.1rem; display: block; margin-bottom: 5px;">{titolo}:</strong>
         <span style="color: rgb(40, 40, 40) !important; font-size: 0.95rem; font-weight: 500;">{testo}</span>
     </div>
     """
 
 with col_l1:
-    st.markdown(box_legenda("Caso Sospetto", "Persona esposta (es. nave MV Hondius) con febbre e sintomi gastrointestinali o respiratori.", "#007bff"), unsafe_allow_html=True)
-with col_l2:
     st.markdown(box_legenda("Caso Probabile", "Persona con sintomi clinici e un legame epidemiologico confermato con un altro caso.", "#fd7e14"), unsafe_allow_html=True)
-with col_l3:
+with col_l2:
     st.markdown(box_legenda("Caso Confermato", "Caso che soddisfa i criteri clinici ed è confermato da test di laboratorio (PCR o sierologia).", "#dc3545"), unsafe_allow_html=True)
 
 # --- FOOTER ---
