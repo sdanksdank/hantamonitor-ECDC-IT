@@ -72,7 +72,7 @@ try:
 except:
     df = pd.DataFrame(columns=['Data', 'Casi Confermati', 'Casi Probabili', 'Casi Sospetti', 'Decessi'])
 
-# Aggiornamento database se necessario
+# Aggiornamento database
 if df.empty or dati_ecdc['confermati'] != df.iloc[-1]['Casi Confermati']:
     salva_su_google(dati_ecdc)
     st.rerun()
@@ -81,76 +81,87 @@ if df.empty or dati_ecdc['confermati'] != df.iloc[-1]['Casi Confermati']:
 st.title("Monitoraggio Andes Hantavirus")
 st.markdown(f"**Sorgente ECDC:** [Link Ufficiale]({URL_ECDC})")
 
-# Barra del Rischio
+# Barra del Rischio (Forzata leggibile)
 colori = {"Molto Basso": "#28a745", "Basso": "#007bff", "Moderato": "#ffc107", "Alto": "#dc3545", "Molto Alto": "#8b0000"}
-colore = colori.get(livello_rischio, "#6c757d")
-st.markdown(f"""<div style="background-color:#f0f2f6;padding:1rem;border-radius:10px;border-left:8px solid {colore};margin-bottom:25px;color:#111 !important;">
-    <h3 style="margin:0;color:{colore} !important;">RISCHIO EU/EEA: {livello_rischio.upper()}</h3></div>""", unsafe_allow_html=True)
+colore_rischio = colori.get(livello_rischio, "#6c757d")
+st.markdown(f"""
+    <div style="background-color: rgb(240, 242, 246) !important; padding: 1rem; border-radius: 10px; border-left: 8px solid {colore_rischio}; margin-bottom: 25px;">
+        <h3 style="margin: 0; color: {colore_rischio} !important; font-weight: 800;">RISCHIO EU/EEA: {livello_rischio.upper()}</h3>
+    </div>
+""", unsafe_allow_html=True)
 
 # --- GRAFICO IN RIQUADRO ---
 st.subheader("Andamento Temporale dei Casi")
 if not df.empty:
     with st.container():
-        st.markdown('<div style="border: 1px solid #ddd; border-radius: 10px; padding: 10px; background-color: #ffffff;">', unsafe_allow_html=True)
+        st.markdown('<div style="border: 2px solid #ddd; border-radius: 12px; padding: 10px; background-color: rgb(255, 255, 255);">', unsafe_allow_html=True)
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Confermati'], name="Casi Confermati", line=dict(color='#dc3545', width=4), mode='markers+lines'))
-        fig.add_trace(go.Scatter(x=df['Data'], y=df['Decessi'], name="Decessi", line=dict(color='#000000', width=2), mode='markers+lines'))
+        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Confermati'], name="Confermati", line=dict(color='rgb(220, 53, 69)', width=4), mode='lines+markers'))
+        fig.add_trace(go.Scatter(x=df['Data'], y=df['Decessi'], name="Decessi", line=dict(color='rgb(0, 0, 0)', width=2), mode='lines+markers'))
         
         fig.update_layout(
             hovermode="x unified", 
             template="plotly_white", 
             margin=dict(l=20,r=20,b=20,t=40),
-            xaxis=dict(type='category', title="Data Rilevazione", tickfont=dict(color="black")),
-            yaxis=dict(title="Numero Casi", gridcolor='#f0f0f0', tickfont=dict(color="black")),
+            xaxis=dict(type='category', tickfont=dict(color="black")),
+            yaxis=dict(gridcolor='rgb(240, 240, 240)', tickfont=dict(color="black")),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color="black"))
         )
         st.plotly_chart(fig, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# --- METRICHE IN RIQUADRI (OTTIMIZZATI DARK MODE) ---
+# --- METRICHE IN RIQUADRI (FIX DARK MODE) ---
 st.markdown("<br>", unsafe_allow_html=True)
 st.subheader("Riepilogo Dati Attuali")
 m1, m2, m3, m4 = st.columns(4)
 
 def box_metrica(titolo, specifica, valore, colore_bordo):
     return f"""
-    <div style="border: 2px solid {colore_bordo}; border-radius: 10px; padding: 15px; text-align: center; background-color: #ffffff; margin-bottom: 10px;">
-        <h4 style="margin: 0; color: #555 !important; font-size: 0.9rem; font-weight: bold;">{titolo}</h4>
-        <p style="margin: 0; color: #777 !important; font-size: 0.7rem; text-transform: uppercase;">{specifica}</p>
-        <h2 style="margin: 10px 0 0 0; color: {colore_bordo} !important; font-size: 2.2rem; font-weight: bold;">{valore}</h2>
+    <div style="
+        border: 3px solid {colore_bordo}; 
+        border-radius: 12px; 
+        padding: 20px; 
+        text-align: center; 
+        background-color: rgb(245, 245, 245) !important; 
+        margin-bottom: 15px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    ">
+        <h4 style="margin: 0; color: rgb(40, 40, 40) !important; font-size: 1rem; font-weight: 800; text-transform: uppercase;">{titolo}</h4>
+        <p style="margin: 2px 0; color: rgb(100, 100, 100) !important; font-size: 0.8rem; font-weight: 600;">{specifica}</p>
+        <h2 style="margin: 10px 0 0 0; color: {colore_bordo} !important; font-size: 2.5rem; font-weight: 900;">{valore}</h2>
     </div>
     """
 
-m1.markdown(box_metrica("CASI CONFERMATI", "MONDO", dati_ecdc['confermati'], "#dc3545"), unsafe_allow_html=True)
-m2.markdown(box_metrica("DECESSI", "MONDO", dati_ecdc['morti'], "#000000"), unsafe_allow_html=True)
-m3.markdown(box_metrica("CASI PROBABILI", "MONDO", dati_ecdc['probabili'], "#fd7e14"), unsafe_allow_html=True)
-m4.markdown(box_metrica("MONITORAGGIO", "ITALIA", dati_ecdc['italia_quarantena'], "#007bff"), unsafe_allow_html=True)
+m1.markdown(box_metrica("CASI CONFERMATI", "MONDO", dati_ecdc['confermati'], "rgb(220, 53, 69)"), unsafe_allow_html=True)
+m2.markdown(box_metrica("DECESSI", "MONDO", dati_ecdc['morti'], "rgb(0, 0, 0)"), unsafe_allow_html=True)
+m3.markdown(box_metrica("CASI PROBABILI", "MONDO", dati_ecdc['probabili'], "rgb(253, 126, 20)"), unsafe_allow_html=True)
+m4.markdown(box_metrica("MONITORAGGIO", "ITALIA", dati_ecdc['italia_quarantena'], "rgb(0, 123, 255)"), unsafe_allow_html=True)
 
-# --- LEGENDA FISSA (OTTIMIZZATA DARK MODE) ---
+# --- LEGENDA (FIX DARK MODE) ---
 st.markdown("<br><hr>", unsafe_allow_html=True)
 st.subheader("Legenda Definizioni")
 col_l1, col_l2, col_l3 = st.columns(3)
 
+def box_legenda(titolo, testo, colore_sinistra):
+    return f"""
+    <div style="background-color: rgb(235, 235, 235) !important; padding: 15px; border-radius: 10px; border-left: 6px solid {colore_sinistra}; min-height: 120px; margin-bottom: 10px;">
+        <strong style="color: rgb(0, 0, 0) !important; font-size: 1.1rem; display: block; margin-bottom: 5px;">{titolo}:</strong>
+        <span style="color: rgb(40, 40, 40) !important; font-size: 0.95rem; font-weight: 500;">{testo}</span>
+    </div>
+    """
+
 with col_l1:
-    st.markdown("""<div style="background-color: #f9f9f9; padding: 15px; border-radius: 10px; border-left: 5px solid #007bff; min-height: 120px; color: #222 !important;">
-    <strong style="color: #000 !important;">Caso Sospetto:</strong> Persona esposta (es. nave MV Hondius) con febbre e sintomi gastrointestinali o respiratori.
-    </div>""", unsafe_allow_html=True)
-
+    st.markdown(box_legenda("Caso Sospetto", "Persona esposta (es. nave MV Hondius) con febbre e sintomi gastrointestinali o respiratori.", "#007bff"), unsafe_allow_html=True)
 with col_l2:
-    st.markdown("""<div style="background-color: #f9f9f9; padding: 15px; border-radius: 10px; border-left: 5px solid #fd7e14; min-height: 120px; color: #222 !important;">
-    <strong style="color: #000 !important;">Caso Probabile:</strong> Persona con sintomi clinici e un legame epidemiologico confermato con un altro caso.
-    </div>""", unsafe_allow_html=True)
-
+    st.markdown(box_legenda("Caso Probabile", "Persona con sintomi clinici e un legame epidemiologico confermato con un altro caso.", "#fd7e14"), unsafe_allow_html=True)
 with col_l3:
-    st.markdown("""<div style="background-color: #f9f9f9; padding: 15px; border-radius: 10px; border-left: 5px solid #dc3545; min-height: 120px; color: #222 !important;">
-    <strong style="color: #000 !important;">Caso Confermato:</strong> Caso che soddisfa i criteri clinici ed è confermato da test di laboratorio (PCR o sierologia).
-    </div>""", unsafe_allow_html=True)
+    st.markdown(box_legenda("Caso Confermato", "Caso che soddisfa i criteri clinici ed è confermato da test di laboratorio (PCR o sierologia).", "#dc3545"), unsafe_allow_html=True)
 
 # --- FOOTER ---
 st.markdown("---")
 st.markdown(
     """
-    <div style="text-align: center; color: gray; font-size: 0.8rem; opacity: 0.8; padding-bottom: 20px;">
+    <div style="text-align: center; color: rgb(100, 100, 100) !important; font-size: 0.85rem; font-weight: 600; padding-bottom: 30px;">
         Sviluppato da <strong>iGhostPro</strong> con il supporto di <strong>Gemini AI</strong> • 2026
     </div>
     """, 
