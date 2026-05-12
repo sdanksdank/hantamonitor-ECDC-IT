@@ -152,3 +152,14 @@ with col_l3:
 
 # Auto-refresh ogni ora
 st.components.v1.html(f"<script>setTimeout(function(){{window.location.reload();}}, 3600000);</script>", height=0)
+
+# --- FOOTER ---
+st.markdown("---")
+st.markdown(
+    """
+    <div style="text-align: center; color: #888; font-size: 0.8rem;">
+        Sviluppato da <strong>iGhostPro</strong> con il supporto di <strong>Gemini AI</strong> • 2026
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
