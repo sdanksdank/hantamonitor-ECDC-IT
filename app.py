@@ -68,11 +68,11 @@ dati_ecdc, livello_rischio = fetch_ecdc_data()
 # Lettura storico dal foglio Google
 try:
     df = pd.read_csv(SHEET_READ_URL)
-    df['Data'] = pd.to_datetime(df['Data']).dt.strftime('%Y-%m-%d %H:00')
+    df['Data'] = pd.to_datetime(df['Data']).dt.strftime('%d %b') # Formato data più compatto per il grafico (es. 12 Mag)
 except:
     df = pd.DataFrame(columns=['Data', 'Casi Confermati', 'Casi Probabili', 'Casi Sospetti', 'Decessi'])
 
-# Aggiornamento database se ci sono nuovi dati
+# Aggiornamento database
 if df.empty or dati_ecdc['confermati'] != df.iloc[-1]['Casi Confermati']:
     salva_su_google(dati_ecdc)
     st.rerun()
@@ -87,28 +87,31 @@ colore = colori.get(livello_rischio, "#6c757d")
 st.markdown(f"""<div style="background-color:#f0f2f6;padding:1rem;border-radius:10px;border-left:8px solid {colore};margin-bottom:25px;">
     <h3 style="margin:0;color:{colore};">RISCHIO EU/EEA: {livello_rischio.upper()}</h3></div>""", unsafe_allow_html=True)
 
-# --- GRAFICO IN RIQUADRO ---
+# --- GRAFICO IN RIQUADRO (PULITO) ---
 st.subheader("Andamento Temporale dei Casi")
 if not df.empty:
     with st.container():
         st.markdown('<div style="border: 1px solid #ddd; border-radius: 10px; padding: 10px; background-color: #ffffff;">', unsafe_allow_html=True)
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Confermati'], name="Confermati (Mondo)", line=dict(color='#dc3545', width=4), mode='lines+markers'))
-        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Sospetti'], name="Sospetti/Monitoraggio", line=dict(color='#007bff', width=2, dash='dot'), mode='lines+markers'))
-        fig.add_trace(go.Scatter(x=df['Data'], y=df['Decessi'], name="Decessi (Mondo)", line=dict(color='black', width=2), mode='lines+markers'))
+        # Linea Confermati
+        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Confermati'], name="Casi Confermati", 
+                                 line=dict(color='#dc3545', width=4), mode='lines+markers'))
+        # Linea Decessi
+        fig.add_trace(go.Scatter(x=df['Data'], y=df['Decessi'], name="Decessi", 
+                                 line=dict(color='#000000', width=2), mode='lines+markers'))
         
         fig.update_layout(
             hovermode="x unified", 
             template="plotly_white", 
             margin=dict(l=20,r=20,b=20,t=40),
             xaxis=dict(type='category', title="Data Rilevazione"),
-            yaxis=dict(title="Numero Persone"),
+            yaxis=dict(title="Numero Casi", gridcolor='#f0f0f0'),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
         st.plotly_chart(fig, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# --- METRICHE IN RIQUADRI (SOTTO IL GRAFICO) ---
+# --- METRICHE IN RIQUADRI ---
 st.markdown("<br>", unsafe_allow_html=True)
 st.subheader("Riepilogo Dati Attuali")
 m1, m2, m3, m4 = st.columns(4)
