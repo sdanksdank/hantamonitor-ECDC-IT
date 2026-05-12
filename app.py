@@ -65,15 +65,12 @@ st.set_page_config(page_title="Monitoraggio Andes", layout="wide")
 
 dati_ecdc, livello_rischio = fetch_ecdc_data()
 
-# Lettura storico
 try:
     df = pd.read_csv(SHEET_READ_URL)
-    # Pulizia date: converte in datetime e rimuove millisecondi
     df['Data'] = pd.to_datetime(df['Data']).dt.strftime('%Y-%m-%d %H:00')
 except:
     df = pd.DataFrame(columns=['Data', 'Casi Confermati', 'Casi Probabili', 'Casi Sospetti', 'Decessi'])
 
-# Aggiornamento database
 if df.empty or dati_ecdc['confermati'] != df.iloc[-1]['Casi Confermati']:
     salva_su_google(dati_ecdc)
     st.rerun()
@@ -88,22 +85,29 @@ colore = colori.get(livello_rischio, "#6c757d")
 st.markdown(f"""<div style="background-color:#f0f2f6;padding:1rem;border-radius:10px;border-left:8px solid {colore};margin-bottom:25px;">
     <h3 style="margin:0;color:{colore};">RISCHIO EU/EEA: {livello_rischio.upper()}</h3></div>""", unsafe_allow_html=True)
 
-# --- GRAFICO (SOPRA) ---
+# --- GRAFICO IN RIQUADRO ---
 st.subheader("Andamento Temporale dei Casi")
 if not df.empty:
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Confermati'], name="Confermati", line=dict(color='red', width=3), mode='lines+markers'))
-    fig.add_trace(go.Scatter(x=df['Data'], y=df['Decessi'], name="Decessi", line=dict(color='black', width=2), mode='lines+markers'))
-    fig.update_layout(
-        hovermode="x unified", 
-        template="plotly_white", 
-        margin=dict(l=0,r=0,b=0,t=40),
-        xaxis=dict(type='category') # Forza la visualizzazione come categorie per evitare scale temporali strane
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    with st.container():
+        st.markdown('<div style="border: 1px solid #ddd; border-radius: 10px; padding: 10px; background-color: #ffffff;">', unsafe_allow_html=True)
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Confermati'], name="Confermati", line=dict(color='#dc3545', width=4), mode='lines+markers'))
+        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Sospetti'], name="Sospetti/IT", line=dict(color='#007bff', width=2, dash='dot'), mode='lines+markers'))
+        fig.add_trace(go.Scatter(x=df['Data'], y=df['Decessi'], name="Decessi", line=dict(color='black', width=2), mode='lines+markers'))
+        
+        fig.update_layout(
+            hovermode="x unified", 
+            template="plotly_white", 
+            margin=dict(l=20,r=20,b=20,t=40),
+            xaxis=dict(type='category', title="Data Rilevazione"),
+            yaxis=dict(title="Numero Persone"),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-# --- METRICHE IN RIQUADRI (SOTTO IL GRAFICO) ---
-st.markdown("### Riepilogo Dati Attuali")
+# --- METRICHE IN RIQUADRI ---
+st.markdown("<br>", unsafe_allow_html=True)
 m1, m2, m3, m4 = st.columns(4)
 
 def box_metrica(titolo, valore, colore_bordo):
@@ -119,27 +123,24 @@ m2.markdown(box_metrica("DECESSI", dati_ecdc['morti'], "#000000"), unsafe_allow_
 m3.markdown(box_metrica("CASI PROBABILI", dati_ecdc['probabili'], "#fd7e14"), unsafe_allow_html=True)
 m4.markdown(box_metrica("SOSPETTI / IT", dati_ecdc['italia_quarantena'], "#007bff"), unsafe_allow_html=True)
 
-# --- LEGENDA FISSA IN RIQUADRI ---
-st.markdown("<br>", unsafe_allow_html=True)
+# --- LEGENDA FISSA (Rimodellata) ---
+st.markdown("<br><hr>", unsafe_allow_html=True)
 st.subheader("Legenda Definizioni")
-col_l1, col_l2 = st.columns(2)
+col_l1, col_l2, col_l3 = st.columns(3)
 
 with col_l1:
-    st.markdown("""<div style="background-color: #e7f3fe; padding: 15px; border-radius: 10px; border-left: 5px solid #2196F3; height: 100px;">
+    st.markdown("""<div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 5px solid #007bff; min-height: 120px;">
     <strong>Caso Sospetto:</strong> Persona esposta (es. nave MV Hondius) con febbre e sintomi gastrointestinali o respiratori.
-    </div>""", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div style="background-color: #e7f3fe; padding: 15px; border-radius: 10px; border-left: 5px solid #2196F3; height: 100px;">
-    <strong>Caso Probabile:</strong> Persona con sintomi clinici e un legame epidemiologico confermato con un altro caso.
     </div>""", unsafe_allow_html=True)
 
 with col_l2:
-    st.markdown("""<div style="background-color: #e7f3fe; padding: 15px; border-radius: 10px; border-left: 5px solid #2196F3; height: 100px;">
-    <strong>Caso Confermato:</strong> Caso che soddisfa i criteri clinici ed è confermato da test di laboratorio (PCR o sierologia).
+    st.markdown("""<div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 5px solid #fd7e14; min-height: 120px;">
+    <strong>Caso Probabile:</strong> Persona con sintomi clinici e un legame epidemiologico confermato con un altro caso.
     </div>""", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div style="background-color: #e7f3fe; padding: 15px; border-radius: 10px; border-left: 5px solid #2196F3; height: 100px;">
-    <strong>Rischio EU/EEA:</strong> Livello di minaccia valutato per i cittadini europei in base alla trasmissibilità attuale.
+
+with col_l3:
+    st.markdown("""<div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 5px solid #dc3545; min-height: 120px;">
+    <strong>Caso Confermato:</strong> Caso che soddisfa i criteri clinici ed è confermato da test di laboratorio (PCR o sierologia).
     </div>""", unsafe_allow_html=True)
 
 # Auto-refresh ogni ora
