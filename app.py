@@ -7,12 +7,12 @@ import re
 import pandas as pd
 from datetime import datetime
 
-# --- CONFIGURAZIONE ---
+# --- CONFIGURAZIONE SICUREZZA ---
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     SCRIPT_URL = st.secrets["SCRIPT_URL"]
 except:
-    st.error("Configura GEMINI_API_KEY e SCRIPT_URL nei Secrets!")
+    st.error("Configura GEMINI_API_KEY e SCRIPT_URL nei Secrets di Streamlit!")
     st.stop()
 
 URL_API = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={API_KEY}"
@@ -65,12 +65,14 @@ st.set_page_config(page_title="Monitoraggio Andes", layout="wide")
 
 dati_ecdc, livello_rischio = fetch_ecdc_data()
 
+# Lettura storico dal foglio Google
 try:
     df = pd.read_csv(SHEET_READ_URL)
     df['Data'] = pd.to_datetime(df['Data']).dt.strftime('%Y-%m-%d %H:00')
 except:
     df = pd.DataFrame(columns=['Data', 'Casi Confermati', 'Casi Probabili', 'Casi Sospetti', 'Decessi'])
 
+# Aggiornamento database se ci sono nuovi dati
 if df.empty or dati_ecdc['confermati'] != df.iloc[-1]['Casi Confermati']:
     salva_su_google(dati_ecdc)
     st.rerun()
@@ -79,7 +81,7 @@ if df.empty or dati_ecdc['confermati'] != df.iloc[-1]['Casi Confermati']:
 st.title("Monitoraggio Andes Hantavirus")
 st.markdown(f"**Sorgente ECDC:** [Link Ufficiale]({URL_ECDC})")
 
-# Barra del Rischio
+# Barra del Rischio EU
 colori = {"Molto Basso": "#28a745", "Basso": "#007bff", "Moderato": "#ffc107", "Alto": "#dc3545", "Molto Alto": "#8b0000"}
 colore = colori.get(livello_rischio, "#6c757d")
 st.markdown(f"""<div style="background-color:#f0f2f6;padding:1rem;border-radius:10px;border-left:8px solid {colore};margin-bottom:25px;">
@@ -91,9 +93,9 @@ if not df.empty:
     with st.container():
         st.markdown('<div style="border: 1px solid #ddd; border-radius: 10px; padding: 10px; background-color: #ffffff;">', unsafe_allow_html=True)
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Confermati'], name="Confermati", line=dict(color='#dc3545', width=4), mode='lines+markers'))
-        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Sospetti'], name="Sospetti/IT", line=dict(color='#007bff', width=2, dash='dot'), mode='lines+markers'))
-        fig.add_trace(go.Scatter(x=df['Data'], y=df['Decessi'], name="Decessi", line=dict(color='black', width=2), mode='lines+markers'))
+        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Confermati'], name="Confermati (Mondo)", line=dict(color='#dc3545', width=4), mode='lines+markers'))
+        fig.add_trace(go.Scatter(x=df['Data'], y=df['Casi Sospetti'], name="Sospetti/Monitoraggio", line=dict(color='#007bff', width=2, dash='dot'), mode='lines+markers'))
+        fig.add_trace(go.Scatter(x=df['Data'], y=df['Decessi'], name="Decessi (Mondo)", line=dict(color='black', width=2), mode='lines+markers'))
         
         fig.update_layout(
             hovermode="x unified", 
@@ -106,24 +108,26 @@ if not df.empty:
         st.plotly_chart(fig, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# --- METRICHE IN RIQUADRI ---
+# --- METRICHE IN RIQUADRI (SOTTO IL GRAFICO) ---
 st.markdown("<br>", unsafe_allow_html=True)
+st.subheader("Riepilogo Dati Attuali")
 m1, m2, m3, m4 = st.columns(4)
 
-def box_metrica(titolo, valore, colore_bordo):
+def box_metrica(titolo, specifica, valore, colore_bordo):
     return f"""
     <div style="border: 2px solid {colore_bordo}; border-radius: 10px; padding: 15px; text-align: center; background-color: white;">
         <h4 style="margin: 0; color: #555; font-size: 0.9rem;">{titolo}</h4>
+        <p style="margin: 0; color: #888; font-size: 0.7rem; text-transform: uppercase;">{specifica}</p>
         <h2 style="margin: 10px 0 0 0; color: {colore_bordo}; font-size: 2.2rem;">{valore}</h2>
     </div>
     """
 
-m1.markdown(box_metrica("CASI CONFERMATI", dati_ecdc['confermati'], "#dc3545"), unsafe_allow_html=True)
-m2.markdown(box_metrica("DECESSI", dati_ecdc['morti'], "#000000"), unsafe_allow_html=True)
-m3.markdown(box_metrica("CASI PROBABILI", dati_ecdc['probabili'], "#fd7e14"), unsafe_allow_html=True)
-m4.markdown(box_metrica("SOSPETTI / IT", dati_ecdc['italia_quarantena'], "#007bff"), unsafe_allow_html=True)
+m1.markdown(box_metrica("CASI CONFERMATI", "MONDO", dati_ecdc['confermati'], "#dc3545"), unsafe_allow_html=True)
+m2.markdown(box_metrica("DECESSI", "MONDO", dati_ecdc['morti'], "#000000"), unsafe_allow_html=True)
+m3.markdown(box_metrica("CASI PROBABILI", "MONDO", dati_ecdc['probabili'], "#fd7e14"), unsafe_allow_html=True)
+m4.markdown(box_metrica("MONITORAGGIO", "ITALIA", dati_ecdc['italia_quarantena'], "#007bff"), unsafe_allow_html=True)
 
-# --- LEGENDA FISSA (Rimodellata) ---
+# --- LEGENDA FISSA ---
 st.markdown("<br><hr>", unsafe_allow_html=True)
 st.subheader("Legenda Definizioni")
 col_l1, col_l2, col_l3 = st.columns(3)
